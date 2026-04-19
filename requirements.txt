@@ -1,0 +1,25 @@
+# --- Web Server ---
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+
+# --- Image Processing ---
+Pillow
+numpy
+opencv-python-headless
+
+# --- Deep Learning (CPU Optimized for Render) ---
+# We use the CPU version because Render Free/Starter has no GPU.
+--find-links https://download.pytorch.org/whl/cpu
+torch
+torchvision
+
+# --- Graph Attention Component ---
+# Even though you call it CNN-GAT, the GAT layers 
+# are provided by the torch-geometric library.
+torch-geometric
+
+# Required for GATConv operations to run on Render's CPU
+torch-scatter
+torch-sparse
