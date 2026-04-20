@@ -1,5 +1,5 @@
-# main.py
 from fastapi import FastAPI, BackgroundTasks
+from fastapi.middleware.cors import CORSMiddleware # Add this
 from pydantic import BaseModel
 import base64
 import io
@@ -8,20 +8,33 @@ from app.predict import predict_realtime
 
 app = FastAPI()
 
+# --- FIX 1: Add CORS for Flutter Web/Android/iOS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (POST, GET, etc.)
+    allow_headers=["*"],
+)
+
 class StreamFrame(BaseModel):
     image: str
 
-# main.py - Updated advice_map
+# --- FIX 2: Add a Home Route ---
+@app.get("/")
+async def root():
+    return {"status": "success", "message": "Rice Disease API is Running"}
+
 @app.post("/stream")
 async def stream_predict(data: StreamFrame):
     try:
+        # Your existing logic...
         header, encoded = data.image.split(",", 1) if "," in data.image else (None, data.image)
         image_bytes = base64.b64decode(encoded)
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
         result = predict_realtime(image)
         
-        # Comprehensive Advice Map for your specific classes
         advice_map = {
             "Bacterial leaf blight_NSIC Rc 18": "Variety Rc18: Drain fields, apply Potash (MOP), and avoid top-dressing Nitrogen during outbreaks.",
             "Brown spot_NSIC Rc 18": "Variety Rc18: Improve soil fertility. Apply balanced N-P-K fertilizer and check for soil acidity.",
@@ -33,11 +46,9 @@ async def stream_predict(data: StreamFrame):
             "Sheath blight_NSIC Rc 402": "Variety Rc402: Increase plant spacing for better airflow. Apply Hexaconazole or Carbendazim at the base."
         }
         
-        # Get advice based on the exact disease string
         result["management"] = advice_map.get(result["disease"], "Scanning... Please align leaf clearly.")
-        
         return result
         
     except Exception as e:
         print(f"Prediction Error: {e}")
-        return {"disease": "Error", "confidence": 0, "management": "Check backend connection."}
+        return {"disease": "Error", "confidence": 0, "management": f"Error: {str(e)}"}
