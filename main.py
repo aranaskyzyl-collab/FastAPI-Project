@@ -1,5 +1,5 @@
 # main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
 import base64
 import io
@@ -11,42 +11,7 @@ app = FastAPI()
 class StreamFrame(BaseModel):
     image: str
 
-# Structured Advice Dictionary
-DISEASE_GUIDE = {
-    "Bacterial leaf blight_NSIC Rc 18": {
-        "management": "Drain the field immediately to reduce humidity. Avoid excess Nitrogen application.",
-        "treatment": "Spray Copper-based fungicides (e.g., Copper Hydroxide) or Bactericides containing Streptomycin."
-    },
-    "Brown spot_NSIC Rc 18": {
-        "management": "Improve soil nutrients. Ensure balanced N-P-K application.",
-        "treatment": "Apply Mancozeb or Iprodione if spots are widespread."
-    },
-    "Brown spot_NSIC Rc 402": {
-        "management": "Address Potassium deficiency. Ensure field is not submerged for too long.",
-        "treatment": "Foliar spray of Carbendazim or Propiconazole."
-    },
-    "Brown spot_NSIC Rc 436": {
-        "management": "Use clean, certified seeds. Use moderate nitrogen levels.",
-        "treatment": "Apply Fungicides like Edifenphos or Benomyl."
-    },
-    "Leaf blight_NISC Rc 436": {
-        "management": "Remove infected straw/stubble from previous harvest. Improve drainage.",
-        "treatment": "Copper Oxychloride or validamycin spray."
-    },
-    "Leaf blight_NSIC Rc 402": {
-        "management": "Keep water levels low (2-5cm). Avoid wounding the plants during weeding.",
-        "treatment": "Apply Bismerthiazol or Zinc-based treatments."
-    },
-    "Sheath blight_NSIC Rc 402": {
-        "management": "Increase plant spacing to allow airflow. Remove 'weeds' that act as hosts.",
-        "treatment": "Use Hexaconazole or Validamycin A targeting the base of the plant."
-    },
-    "Healthy": {
-        "management": "Maintain regular weeding and monitoring.",
-        "treatment": "No chemical application needed. Keep it up!"
-    }
-}
-
+# main.py - Updated advice_map with treatment on a new line
 @app.post("/stream")
 async def stream_predict(data: StreamFrame):
     try:
@@ -54,23 +19,25 @@ async def stream_predict(data: StreamFrame):
         image_bytes = base64.b64decode(encoded)
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
         
-        # Run your CNN-GAT Model
         result = predict_realtime(image)
         
-        # Extract disease name from model output
-        disease_name = result.get("disease", "Unknown")
+        # Comprehensive Advice Map with \n for line breaks
+        advice_map = {
+            "Bacterial leaf blight_NSIC Rc 18": "Management: Drain field to reduce humidity and stop Nitrogen application.\nTreatment: Spray Bactericides like Copper Hydroxide or Streptomycin Sulfate.",
+            "Brown spot_NSIC Rc 18": "Management: Correct soil nutrient deficiencies by applying balanced N-P-K.\nTreatment: Apply fungicides such as Mancozeb or Iprodione if infection persists.",
+            "Brown spot_NSIC Rc 402": "Management: Ensure field is not water-stressed; provide proper drainage.\nTreatment: Foliar spray with Propiconazole or Carbendazim to limit spore spread.",
+            "Brown spot_NSIC Rc 436": "Management: Use Manganese-rich fertilizers and improve soil quality.\nTreatment: Apply Benomyl or Edifenphos if more than 25% of the leaf area is affected.",
+            "Healthy": "Status: Plant is vigorous.\nAdvice: Maintain current irrigation schedule and continue weekly monitoring.",
+            "Leaf blight_NISC Rc 436": "Management: Remove weeds that act as alternate hosts and keep water level at 2-3cm.\nTreatment: Use Copper-based fungicides like Copper Oxychloride.",
+            "Leaf blight_NSIC Rc 402": "Management: Avoid wounding plants during cultivation and reduce Nitrogen.\nTreatment: Spray Streptomycin sulfate or Bismerthiazol if rapid spreading occurs.",
+            "Sheath blight_NSIC Rc 402": "Management: Increase plant spacing for better ventilation and remove infected straw.\nTreatment: Apply systemic fungicides like Hexaconazole or Validamycin A."
+        }
         
-        # Fetch advice from our guide
-        guide = DISEASE_GUIDE.get(disease_name, {
-            "management": "Align leaf clearly for better detection.",
-            "treatment": "N/A"
-        })
-        
-        # Update result with new fields
-        result["management_advice"] = guide["management"]
-        result["treatment"] = guide["treatment"]
+        # Get advice based on the exact disease string
+        result["management"] = advice_map.get(result["disease"], "Scanning... Please align leaf clearly.")
         
         return result
         
     except Exception as e:
-        return {"disease": "Error", "confidence": 0, "management_advice": str(e), "treatment": "N/A"}
+        print(f"Prediction Error: {e}")
+        return {"disease": "Error", "confidence": 0, "management": "Check backend connection."}
