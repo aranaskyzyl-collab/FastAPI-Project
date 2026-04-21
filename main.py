@@ -11,7 +11,15 @@ app = FastAPI()
 class StreamFrame(BaseModel):
     image: str
 
-# main.py - Updated advice_map with treatment on a new line
+# ADD THIS: This fixes the "Not Found" error when opening the link
+@app.get("/")
+async def root():
+    return {
+        "project": "Hybrid CNN-GAT Rice Disease Detection",
+        "status": "Online",
+        "endpoint": "/stream (POST only)"
+    }
+
 @app.post("/stream")
 async def stream_predict(data: StreamFrame):
     try:
@@ -21,7 +29,6 @@ async def stream_predict(data: StreamFrame):
         
         result = predict_realtime(image)
         
-        # Comprehensive Advice Map with \n for line breaks
         advice_map = {
             "Bacterial leaf blight_NSIC Rc 18": "Management: Drain field to reduce humidity and stop Nitrogen application.\nTreatment: Spray Bactericides like Copper Hydroxide or Streptomycin Sulfate.",
             "Brown spot_NSIC Rc 18": "Management: Correct soil nutrient deficiencies by applying balanced N-P-K.\nTreatment: Apply fungicides such as Mancozeb or Iprodione if infection persists.",
@@ -33,9 +40,7 @@ async def stream_predict(data: StreamFrame):
             "Sheath blight_NSIC Rc 402": "Management: Increase plant spacing for better ventilation and remove infected straw.\nTreatment: Apply systemic fungicides like Hexaconazole or Validamycin A."
         }
         
-        # Get advice based on the exact disease string
         result["management"] = advice_map.get(result["disease"], "Scanning... Please align leaf clearly.")
-        
         return result
         
     except Exception as e:
