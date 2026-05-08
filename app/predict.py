@@ -8,9 +8,11 @@ from app.model_loader import model, CLASS_LABELS, DEVICE
 # We resize to 256 first and then crop to 224 to maintain the aspect ratio 
 # of the lesions, preventing the "squishing" that lowers confidence.
 transform = transforms.Compose([
-    transforms.Resize(256),
+    # This ensures the leaf isn't "stretched" before the crop
+    transforms.Resize(224), 
     transforms.CenterCrop(224),
     transforms.ToTensor(),
+    # Verify these match your training script exactly!
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
